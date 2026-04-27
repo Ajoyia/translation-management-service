@@ -457,10 +457,6 @@ curl http://localhost:8000/api/translations/export?locale=en&tags=web
 curl http://localhost:8000/api/translations?search=login
 ```
 
-### Using Postman or Insomnia:
-
-Import the following collection or manually create requests using the endpoints above.
-
 ## Architecture Decisions
 
 1. **Unique Key-Locale Constraint**: Each translation key can only have one entry per locale, preventing duplicates
