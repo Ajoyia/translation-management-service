@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | CDN URL
+    |--------------------------------------------------------------------------
+    |
+    | The URL of your CDN (Content Delivery Network) used for serving cached
+    | translation exports. When set, this URL will be included in response
+    | headers to help clients know where to fetch cached translations.
+    |
+    */
+
+    'cdn_url' => env('CDN_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

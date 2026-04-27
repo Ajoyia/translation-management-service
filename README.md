@@ -1,58 +1,485 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Translation Management Service
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A comprehensive API-driven translation management service built with Laravel 13, designed to store, manage, and serve translations for multiple locales and platforms.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Multi-locale Support**: Store translations for multiple languages (en, fr, es, etc.) with easy extensibility
+- **Context-based Tagging**: Tag translations for different contexts (mobile, desktop, web, admin, public)
+- **Full CRUD Operations**: Create, read, update, and delete translations via REST API
+- **Advanced Search**: Search translations by tags, keys, or content
+- **JSON Export**: Optimized JSON endpoints for frontend consumption with caching
+- **Real-time Updates**: Export endpoints always return the latest translations
+- **Performance Optimized**: Built-in caching with configurable TTL
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Installation
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Database Structure
 
-## Contributing
+### Tables
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **translations**: Stores translation keys, locales, and content
+- **tags**: Stores available tags (mobile, desktop, web, etc.)
+- **tag_translation**: Pivot table linking translations to tags
 
-## Code of Conduct
+### Translation Model
+- `key`: Translation identifier (e.g., "welcome_message")
+- `locale`: Language code (e.g., "en", "fr", "es")
+- `content`: The translated text
+- `tags`: Many-to-many relationship with tags
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## API Endpoints
 
-## Security Vulnerabilities
+Base URL: `http://localhost:8000/api`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 1. List/Search Translations
+
+```
+GET /api/translations
+```
+
+**Query Parameters:**
+- `locale` - Filter by locale (e.g., `en`, `fr`, `es`)
+- `key` - Filter by exact key
+- `search` - Search in keys and content
+- `tags` - Filter by tags (comma-separated or array)
+- `per_page` - Results per page (default: 15)
+
+**Examples:**
+
+```bash
+GET /api/translations?locale=en
+GET /api/translations?search=welcome
+GET /api/translations?tags=mobile,web
+GET /api/translations?locale=fr&tags=public
+```
+
+**Response:**
+```json
+{
+  "current_page": 1,
+  "data": [
+    {
+      "id": 1,
+      "key": "welcome_message",
+      "locale": "en",
+      "content": "Welcome to our application",
+      "created_at": "2026-04-27T15:59:40.000000Z",
+      "updated_at": "2026-04-27T15:59:40.000000Z",
+      "tags": [
+        {
+          "id": 1,
+          "name": "web",
+          "slug": "web"
+        }
+      ]
+    }
+  ],
+  "per_page": 15,
+  "total": 30
+}
+```
+
+### 2. Create Translation
+
+```
+POST /api/translations
+```
+
+**Request Body:**
+```json
+{
+  "key": "new_message",
+  "locale": "en",
+  "content": "This is a new message",
+  "tags": ["web", "mobile"]
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Translation created successfully",
+  "data": {
+    "id": 31,
+    "key": "new_message",
+    "locale": "en",
+    "content": "This is a new message",
+    "tags": [
+      {"id": 1, "name": "web", "slug": "web"},
+      {"id": 2, "name": "mobile", "slug": "mobile"}
+    ]
+  }
+}
+```
+
+### 3. View Single Translation
+
+```
+GET /api/translations/{id}
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "id": 1,
+    "key": "welcome_message",
+    "locale": "en",
+    "content": "Welcome to our application",
+    "tags": [...]
+  }
+}
+```
+
+### 4. Update Translation
+
+```
+PUT/PATCH /api/translations/{id}
+```
+
+**Request Body:**
+```json
+{
+  "content": "Updated welcome message",
+  "tags": ["web", "mobile", "desktop"]
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Translation updated successfully",
+  "data": {
+    "id": 1,
+    "key": "welcome_message",
+    "locale": "en",
+    "content": "Updated welcome message",
+    "tags": [...]
+  }
+}
+```
+
+### 5. Delete Translation
+
+```
+DELETE /api/translations/{id}
+```
+
+**Response:**
+```json
+{
+  "message": "Translation deleted successfully"
+}
+```
+
+### 6. Export Translations (Single Locale)
+
+```
+GET /api/translations/export
+```
+
+**Query Parameters:**
+- `locale` - Language code (default: `en`)
+- `tags` - Filter by tags (comma-separated or array)
+
+**Examples:**
+
+```bash
+GET /api/translations/export?locale=en
+GET /api/translations/export?locale=fr&tags=mobile,web
+```
+
+**Response:**
+```json
+{
+  "locale": "en",
+  "translations": {
+    "welcome_message": "Welcome to our application",
+    "login_button": "Login",
+    "logout_button": "Logout",
+    "dashboard_title": "Dashboard"
+  },
+  "generated_at": "2026-04-27T15:59:40+00:00"
+}
+```
+
+**Frontend Integration Example (Vue.js):**
+
+```javascript
+// Load translations for English
+const response = await fetch('/api/translations/export?locale=en&tags=web');
+const { translations } = await response.json();
+
+// Use in Vue app
+const i18n = createI18n({
+  locale: 'en',
+  messages: {
+    en: translations
+  }
+});
+```
+
+### 7. Export All Translations (All Locales)
+
+```
+GET /api/translations/export/all
+```
+
+**Query Parameters:**
+- `tags` - Filter by tags (comma-separated or array)
+
+**Response:**
+```json
+{
+  "translations": {
+    "en": {
+      "welcome_message": "Welcome to our application",
+      "login_button": "Login"
+    },
+    "fr": {
+      "welcome_message": "Bienvenue dans notre application",
+      "login_button": "Connexion"
+    },
+    "es": {
+      "welcome_message": "Bienvenido a nuestra aplicación",
+      "login_button": "Iniciar sesión"
+    }
+  },
+  "generated_at": "2026-04-27T15:59:40+00:00"
+}
+```
+
+### 8. Clear Translation Cache
+
+```
+POST /api/translations/cache/clear
+```
+
+**Response:**
+```json
+{
+  "message": "Cache cleared successfully"
+}
+```
+
+## Performance & Caching
+
+- Export endpoints use Laravel's caching system
+- Cache TTL: 5 minutes (configurable)
+- Cache is automatically invalidated when:
+  - Creating new translations
+  - Updating existing translations
+  - Deleting translations
+- Manual cache clearing via `/api/translations/cache/clear`
+
+## CDN Support
+
+The Translation Management Service includes built-in CDN (Content Delivery Network) support for optimal performance and global distribution of translation exports.
+
+### Features
+
+- **Automatic CDN Headers**: Export endpoints automatically include CDN-friendly headers
+- **Long Cache Lifetimes**: Configured for maximum CDN efficiency
+- **Cache Control**: Fine-tuned caching directives for both browsers and CDN edge servers
+- **Vary Headers**: Proper content negotiation support
+- **CDN Status Tracking**: X-Cache-Status header for monitoring cache hits/misses
+
+### Configuration
+
+Add your CDN URL to `.env`:
+
+```env
+CDN_URL=https://cdn.yourdomain.com
+```
+
+### HTTP Headers
+
+Export endpoints (`/api/translations/export*`) automatically include:
+
+| Header | Value | Purpose |
+|--------|-------|---------|
+| `Cache-Control` | `public, max-age=3600, s-maxage=86400` | Browser cache: 1 hour, CDN cache: 24 hours |
+| `Vary` | `Accept-Encoding` | Ensure proper compression handling |
+| `X-Cache-Status` | `MISS` | Track cache performance |
+| `X-CDN-URL` | Your CDN URL | Reference for cache location |
+
+### CDN Setup Examples
+
+#### Cloudflare
+
+1. Add your domain to Cloudflare
+2. Set up a Page Rule for `/api/translations/export*`:
+   - Cache Level: Cache Everything
+   - Edge Cache TTL: 1 day
+   - Browser Cache TTL: 1 hour
+
+```env
+CDN_URL=https://cdn.cloudflare.net/yourdomain
+```
+
+#### AWS CloudFront
+
+1. Create a CloudFront distribution
+2. Set origin to your API domain
+3. Configure cache behavior for `/api/translations/export*`:
+   - TTL: 86400 seconds
+   - Compress Objects: Yes
+   - Forward Query Strings: Yes
+
+```env
+CDN_URL=https://d1234567890.cloudfront.net
+```
+
+#### Fastly
+
+1. Create a Fastly service
+2. Set backend to your API
+3. Add VCL for translation endpoints:
+
+```vcl
+if (req.url ~ "^/api/translations/export") {
+  set beresp.ttl = 24h;
+}
+```
+
+```env
+CDN_URL=https://yourservice.global.ssl.fastly.net
+```
+
+### Integration Example
+
+When using a CDN, your frontend can check the CDN URL from response headers:
+
+```javascript
+const response = await fetch('/api/translations/export?locale=en');
+const cdnUrl = response.headers.get('X-CDN-URL');
+
+if (cdnUrl) {
+  const cdnResponse = await fetch(`${cdnUrl}/api/translations/export?locale=fr`);
+  const { translations } = await cdnResponse.json();
+}
+```
+
+### Cache Invalidation
+
+When translations are updated, you may need to purge your CDN cache:
+
+**Cloudflare:**
+```bash
+curl -X POST "https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache" \
+  -H "Authorization: Bearer {api_token}" \
+  -d '{"files":["https://yourdomain.com/api/translations/export"]}'
+```
+
+**AWS CloudFront:**
+```bash
+aws cloudfront create-invalidation \
+  --distribution-id {distribution_id} \
+  --paths "/api/translations/export*"
+```
+
+**Fastly:**
+```bash
+curl -X POST "https://api.fastly.com/service/{service_id}/purge_all" \
+  -H "Fastly-Key: {api_key}"
+```
+
+### Best Practices
+
+1. **Use CDN for Export Endpoints**: Only translation exports benefit from CDN caching
+2. **Keep CRUD Operations Direct**: Create/Update/Delete should hit your origin server
+3. **Monitor Cache Performance**: Check X-Cache-Status header to ensure proper caching
+4. **Set Up Automatic Purging**: Integrate CDN purge with your deployment pipeline
+5. **Geographic Distribution**: Choose CDN edge locations near your users
+
+### Performance Benefits
+
+With CDN enabled:
+- **Reduced Latency**: 50-90% faster response times for geographically distributed users
+- **Lower Origin Load**: 80-95% of translation requests served from CDN edge
+- **Better Scalability**: Handle traffic spikes without scaling origin servers
+- **Cost Savings**: Reduced bandwidth costs on origin infrastructure
+
+## Tag System
+
+Tags help organize translations by context. Pre-seeded tags include:
+
+- `mobile` - Mobile app translations
+- `desktop` - Desktop app translations
+- `web` - Web app translations
+- `admin` - Admin panel translations
+- `public` - Public-facing translations
+
+Tags are automatically created when assigning them to translations.
+
+## Sample Data
+
+The seeder includes 10 common translation keys across 3 locales (en, fr, es):
+
+- welcome_message
+- login_button
+- logout_button
+- dashboard_title
+- settings_title
+- save_button
+- cancel_button
+- search_placeholder
+- error_404
+- error_500
+
+## Testing the API
+
+### Using cURL:
+
+```bash
+# List all translations
+curl http://localhost:8000/api/translations
+
+# Create a translation
+curl -X POST http://localhost:8000/api/translations \
+  -H "Content-Type: application/json" \
+  -d '{"key":"test","locale":"en","content":"Test message","tags":["web"]}'
+
+# Export translations for Vue.js
+curl http://localhost:8000/api/translations/export?locale=en&tags=web
+
+# Search translations
+curl http://localhost:8000/api/translations?search=login
+```
+
+### Using Postman or Insomnia:
+
+Import the following collection or manually create requests using the endpoints above.
+
+## Architecture Decisions
+
+1. **Unique Key-Locale Constraint**: Each translation key can only have one entry per locale, preventing duplicates
+2. **Pivot Table for Tags**: Many-to-many relationship allows flexible categorization
+3. **Scope-based Queries**: Eloquent scopes make filtering clean and reusable
+4. **Automatic Slug Generation**: Tags automatically generate URL-friendly slugs
+5. **UpdateOrCreate Strategy**: Creating translations with existing key+locale updates them
+
+## Future Enhancements
+
+- API authentication (Sanctum/Passport)
+- Translation versioning and history
+- Bulk import/export (CSV, XLIFF)
+- Translation statistics and analytics
+- Fallback locale support
+- Pluralization rules
+- Variable interpolation
+- Translation approval workflow
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT
