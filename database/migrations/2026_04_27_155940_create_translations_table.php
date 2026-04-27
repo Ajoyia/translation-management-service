@@ -19,6 +19,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['key', 'locale']);
+            $table->index(['locale', 'created_at']);
         });
     }
 
